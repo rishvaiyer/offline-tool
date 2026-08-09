@@ -15,6 +15,16 @@ const goalSignals = {
   content: [/street event/i, /market/i, /festival/i]
 };
 
+const exclusionPattern = /load[ -]?in|load[ -]?out|setup|breakdown|production hold|administrative/i;
+const componentNames = ["vertical", "goal", "audience", "geography", "timing"];
+const unknownSignals = [
+  "Host trust",
+  "willingness",
+  "pricing",
+  "capacity",
+  "relationship fit"
+];
+
 export function normaliseEvent(record) {
   return {
     id: record.event_id,
@@ -28,29 +38,82 @@ export function normaliseEvent(record) {
   };
 }
 
-function matches(signalSet, event) {
-  const text = `${event.name} ${event.type} ${event.location}`;
-  return signalSet.some((pattern) => pattern.test(text));
+function eventText(event) {
+  return `${event.name ?? ""} ${event.type ?? ""} ${event.location ?? ""}`;
 }
 
-function score(event, filters) {
-  const verticalFit = matches(verticalSignals[filters.vertical] ?? [], event);
-  const goalFit = matches(goalSignals[filters.goal] ?? [], event);
-  const coreMarket = ["Manhattan", "Brooklyn"].includes(event.borough);
-  const scoreValue = Math.round((verticalFit ? 46 : 15) + (goalFit ? 37 : 10) + (coreMarket ? 17 : 8));
-  const reasons = [];
+function matches(signalSet, event) {
+  return signalSet.some((pattern) => pattern.test(eventText(event)));
+}
 
-  if (verticalFit) reasons.push("vertical fit");
-  if (goalFit) reasons.push("goal fit");
-  if (coreMarket) reasons.push("NYC core market");
+function normaliseKey(value) {
+  return String(value ?? "").trim().replace(/\s+/g, " ").toLowerCase();
+}
 
-  return { value: scoreValue, reason: reasons.length ? reasons.join(" · ") : "broad public-event signal" };
+function isYouth(event) {
+  return /youth|children|child|kids|junior/i.test(`${event.name ?? ""} ${event.type ?? ""}`);
+}
+
+function scoreEvent(event, filters, now) {
+  const start = new Date(event.start);
+  const vertical = matches(verticalSignals[filters.vertical] ?? [], event) ? 30 : 0;
+  const goal = matches(goalSignals[filters.goal] ?? [], event) ? 25 : 0;
+  const audience = filters.audience === "families" || !isYouth(event) ? 15 : 0;
+  const geography = filters.borough === "All" || event.borough === filters.borough ? 10 : 0;
+  const timing = Number.isNaN(start.getTime()) || start <= now ? 0 : 10;
+  const components = { vertical, goal, audience, geography, timing };
+  const matched = componentNames.filter((component) => components[component] > 0);
+  const unknown = unknownSignals.slice();
+
+  return {
+    event,
+    score: Math.min(90, Object.values(components).reduce((total, value) => total + value, 0)),
+    components,
+    matched,
+    unknown
+  };
+}
+
+function duplicateKey(event) {
+  return [event.name, event.location, event.type, event.start].map(normaliseKey).join("|");
+}
+
+export function prepareEvents(events, filters, now = new Date()) {
+  const counts = { reviewed: events.length, qualified: 0, excluded: 0, duplicates: 0 };
+  const seen = new Set();
+  const results = [];
+
+  for (const event of events) {
+    const outOfScope = filters.borough !== "All" && event.borough !== filters.borough;
+    const wrongAudience = filters.audience !== "families" && isYouth(event);
+    if (outOfScope || wrongAudience || exclusionPattern.test(`${event.name ?? ""} ${event.type ?? ""}`)) {
+      counts.excluded += 1;
+      continue;
+    }
+
+    const key = duplicateKey(event);
+    if (seen.has(key)) {
+      counts.duplicates += 1;
+      continue;
+    }
+    seen.add(key);
+    results.push(scoreEvent(event, filters, now));
+  }
+
+  counts.qualified = results.length;
+  results.sort((a, b) => b.score - a.score || a.event.start.localeCompare(b.event.start) || String(a.event.id).localeCompare(String(b.event.id)));
+  return { results, counts };
 }
 
 export function rankEvents(events, filters) {
-  return events
-    .filter((event) => filters.borough === "All" || event.borough === filters.borough)
-    .filter((event) => filters.eventType === "All" || event.type === filters.eventType)
-    .map((event) => ({ event, ...score(event, filters) }))
-    .sort((a, b) => b.value - a.value || a.event.start.localeCompare(b.event.start));
+  return prepareEvents(events, {
+    ...filters,
+    audience: "families",
+    energy: filters.energy ?? "any",
+    scale: filters.scale ?? "any"
+  }).results.map((result) => ({
+    event: result.event,
+    value: result.score,
+    reason: result.matched.length ? result.matched.join(" · ") : "broad public-event signal"
+  }));
 }

@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
-import { normaliseEvent, rankEvents } from "../src/scoring.js";
+import { normaliseEvent, prepareEvents } from "../src/scoring.js";
 
 const rawEvent = {
   event_id: "950351",
@@ -27,13 +27,98 @@ test("normaliseEvent maps the public NYC record into planner fields", () => {
   });
 });
 
-test("rankEvents prioritizes a fitting event and makes its reason visible", () => {
-  const ranked = rankEvents([
-    normaliseEvent(rawEvent),
-    { ...normaliseEvent(rawEvent), id: "2", name: "Street Festival", type: "Street Event", borough: "Queens" }
-  ], { vertical: "athletic", goal: "sampling", borough: "All", eventType: "All" });
+const fixtures = [
+  {
+    id: "adult-1",
+    name: "Brooklyn Community Run",
+    start: "2026-08-12T15:00:00Z",
+    end: "2026-08-12T17:00:00Z",
+    agency: "Parks Department",
+    type: "Sport - Running",
+    borough: "Brooklyn",
+    location: "Prospect Park"
+  },
+  {
+    id: "youth-1",
+    name: "Youth Soccer Clinic",
+    start: "2026-08-13T15:00:00Z",
+    end: "2026-08-13T17:00:00Z",
+    agency: "Parks Department",
+    type: "Sport - Youth",
+    borough: "Brooklyn",
+    location: "McCarren Park"
+  },
+  {
+    id: "load-in-1",
+    name: "Market Load-In",
+    start: "2026-08-14T15:00:00Z",
+    end: "2026-08-14T17:00:00Z",
+    agency: "Events Office",
+    type: "Production Load In",
+    borough: "Brooklyn",
+    location: "Prospect Park"
+  },
+  {
+    id: "market-1",
+    name: "Saturday Market",
+    start: "2026-08-15T15:00:00Z",
+    end: "2026-08-15T17:00:00Z",
+    agency: "Public Markets",
+    type: "Market",
+    borough: "Brooklyn",
+    location: "Grand Army Plaza"
+  },
+  {
+    id: "market-duplicate",
+    name: " Saturday  Market ",
+    start: "2026-08-15T15:00:00Z",
+    end: "2026-08-15T17:00:00Z",
+    agency: "Public Markets",
+    type: "Market",
+    borough: "Brooklyn",
+    location: "Grand Army Plaza"
+  },
+  {
+    id: "admin-1",
+    name: "Administrative Staff Meeting",
+    start: "2026-08-16T15:00:00Z",
+    end: "2026-08-16T17:00:00Z",
+    agency: "City Office",
+    type: "Administrative",
+    borough: "Brooklyn",
+    location: "Municipal Building"
+  }
+];
 
-  assert.equal(ranked[0].event.id, "950351");
-  assert.match(ranked[0].reason, /vertical fit/);
-  assert.match(ranked[0].reason, /goal fit/);
+test("qualifies, deduplicates, and transparently ranks public signals", () => {
+  const prepared = prepareEvents(fixtures, {
+    vertical: "athletic",
+    goal: "sampling",
+    audience: "adults",
+    borough: "Brooklyn",
+    energy: "active",
+    scale: "small"
+  }, new Date("2026-08-09T12:00:00Z"));
+
+  assert.equal(prepared.results[0].event.id, "adult-1");
+  assert.equal(prepared.results[0].score <= 90, true);
+  assert.deepEqual(Object.keys(prepared.results[0].components), [
+    "vertical", "goal", "audience", "geography", "timing"
+  ]);
+  assert.equal(prepared.results.some(({ event }) => event.type.includes("Youth")), false);
+  assert.equal(prepared.counts.duplicates, 1);
+  assert.match(prepared.results[0].unknown.join(" "), /Host trust/);
+});
+
+test("uses stable start and identifier ordering for equal scores", () => {
+  const events = fixtures.slice(0, 1).map((event) => ({ ...event, id: "z" })).concat({
+    ...fixtures[0], id: "a", start: "2026-08-12T15:00:00Z", location: "McCarren Park"
+  });
+
+  const prepared = prepareEvents(events, {
+    vertical: "athletic", goal: "sampling", audience: "adults", borough: "Brooklyn",
+    energy: "active", scale: "small"
+  }, new Date("2026-08-09T12:00:00Z"));
+
+  assert.deepEqual(prepared.results.map(({ event }) => event.id), ["a", "z"]);
 });
