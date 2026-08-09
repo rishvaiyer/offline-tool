@@ -51,7 +51,7 @@ function normaliseKey(value) {
 }
 
 function isYouth(event) {
-  return /youth|children|child|kids|junior/i.test(`${event.name ?? ""} ${event.type ?? ""}`);
+  return /youth|children|child|kids|junior|after\s*-?\s*school|students?|recess|summer rising/i.test(`${event.name ?? ""} ${event.type ?? ""}`);
 }
 
 function scoreEvent(event, filters, now) {

@@ -64,6 +64,10 @@ test("returns prepared events with bounded-source metadata", async () => {
   assert.deepEqual(body.facets, { boroughs: ["Brooklyn"], eventTypes: ["Market", "Production Load In", "Sport - Running", "Sport - Youth"] });
   assert.equal(body.events[0].event.id, "adult-1");
   assert.equal(requests[0].searchParams.get("$limit"), "1001");
+  assert.equal(
+    requests[0].searchParams.get("$where"),
+    "start_date_time >= '2026-08-09T00:00:00.000' AND start_date_time < '2026-12-07T00:00:00.000'"
+  );
 });
 
 test("contains upstream failures behind the existing safe error", async () => {

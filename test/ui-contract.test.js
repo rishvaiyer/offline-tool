@@ -39,6 +39,9 @@ test("keeps primary source and selection actions visible on three-card shortlist
   const disclosureEnd = primaryTemplate.indexOf("</details>");
 
   assert.notEqual(disclosureEnd, -1);
+  assert.ok(primaryTemplate.indexOf("score-block") < disclosureEnd);
+  assert.ok(primaryTemplate.indexOf("evidence-grid") < disclosureEnd);
+  assert.ok(primaryTemplate.indexOf("score-block") > primaryTemplate.indexOf('<details class="event-details">'));
   assert.ok(primaryTemplate.indexOf("View source record") > disclosureEnd);
   assert.ok(primaryTemplate.indexOf("Build a brief around this") > disclosureEnd);
   assert.match(app, /shortlistPresentation\(events\)/);

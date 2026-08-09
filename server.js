@@ -57,7 +57,7 @@ export function createApp({ fetchImpl = globalThis.fetch, now = () => new Date()
 
     const query = new URLSearchParams({
       "$select": "event_id,event_name,start_date_time,end_date_time,event_agency,event_type,event_borough,event_location",
-      "$where": `start_date_time >= '${queryWindow.start}' AND start_date_time < '${queryWindow.end}'`,
+      "$where": `start_date_time >= '${queryWindow.start.replace(/Z$/, "")}' AND start_date_time < '${queryWindow.end.replace(/Z$/, "")}'`,
       "$order": "start_date_time ASC",
       "$limit": String(sourceLimit + 1)
     });

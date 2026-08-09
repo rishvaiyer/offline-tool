@@ -134,6 +134,22 @@ test("rankEvents excludes youth unless families is explicitly selected", () => {
   assert.equal(family[0].event.id, "youth-1");
 });
 
+test("adult briefs exclude school-program language found in live NYC records", () => {
+  const schoolPrograms = [
+    { ...fixtures[0], id: "after-school", name: "Afterschool Fun", type: "Open Street Partner Event" },
+    { ...fixtures[0], id: "students", name: "Open Street Recess for NYCPS Summer Rising Students", type: "Street Event" }
+  ];
+  const filters = {
+    vertical: "beverage", goal: "awareness", borough: "All", eventType: "All"
+  };
+
+  assert.deepEqual(rankEvents(schoolPrograms, { ...filters, audience: "adults" }), []);
+  assert.deepEqual(
+    rankEvents(schoolPrograms, { ...filters, audience: "families" }).map(({ event }) => event.id),
+    ["after-school", "students"]
+  );
+});
+
 test("rankEvents preserves the eventType filter", () => {
   const ranked = rankEvents([fixtures[0], fixtures[3]], {
     vertical: "athletic",

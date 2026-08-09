@@ -168,18 +168,19 @@ function primaryCard(result, index) {
       <p class="event-meta">${escapeHtml(formatDate(event.start))} · ${escapeHtml(event.borough || "Borough not listed")}</p>
       <p class="event-location">${escapeHtml(event.location || "Location not listed")}</p>
 
-      <div class="score-block" aria-label="Score breakdown">
-        <p class="mini-label">VISIBLE SCORE COMPONENTS</p>
-        <ul class="component-list">${componentList(components)}</ul>
-      </div>
-      <div class="evidence-grid">
-        <div><p class="mini-label">MATCHED EVIDENCE</p><ul>${evidenceList(matched, componentLabels)}</ul></div>
-        <div><p class="mini-label">STILL UNKNOWN</p><ul>${evidenceList(unknown)}</ul></div>
-      </div>
-
       <details class="event-details">
-        <summary>Public record context</summary>
-        <p>Listed by ${escapeHtml(event.agency || "the source agency")}. This record can support a planning direction, not a claim about attendance, Host interest, pricing, or campaign results.</p>
+        <summary>Why this match + unknowns</summary>
+        <div class="event-details-content">
+          <div class="score-block" aria-label="Score breakdown">
+            <p class="mini-label">VISIBLE SCORE COMPONENTS</p>
+            <ul class="component-list">${componentList(components)}</ul>
+          </div>
+          <div class="evidence-grid">
+            <div><p class="mini-label">MATCHED EVIDENCE</p><ul>${evidenceList(matched, componentLabels)}</ul></div>
+            <div><p class="mini-label">STILL UNKNOWN</p><ul>${evidenceList(unknown)}</ul></div>
+          </div>
+          <p>Listed by ${escapeHtml(event.agency || "the source agency")}. This record can support a planning direction, not a claim about attendance, Host interest, pricing, or campaign results.</p>
+        </div>
       </details>
 
       <div class="card-actions">
