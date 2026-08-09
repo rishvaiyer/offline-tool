@@ -448,20 +448,16 @@ document.querySelector("#custom-start").addEventListener("click", () => openForm
 document.querySelector("#edit-from-start").addEventListener("click", () => showStep(1, true));
 
 form.addEventListener("change", () => {
-  requestTracker.begin();
   state.filters = readFilters();
   state.selectedEventId = null;
   state.brief = null;
-  briefOutput.hidden = true;
-  briefContent.innerHTML = "";
-  briefActionStatus.textContent = "";
-  results.removeAttribute("aria-busy");
+  clearPriorOutput();
   syncUrl();
   if (state.mode === "sample") {
     state.mode = "custom";
     sampleBadge.hidden = true;
-    workflowStatus.textContent = "Sample adjusted. Submit the form to refresh public signals.";
   }
+  workflowStatus.textContent = "Choices changed. Submit to refresh public signals.";
 });
 
 form.addEventListener("click", (event) => {

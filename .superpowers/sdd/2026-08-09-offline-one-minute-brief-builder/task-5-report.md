@@ -29,3 +29,9 @@ Complete. No deployment performed.
 - Added executable fake-browser tests for deferred restoration ordering, rejected clipboard fallback selection, reset URL and focus, and print details, source, limitations, and hidden controls.
 - Verification: `npm test` passed with 30 tests. At 390px, `Open details` measured 44px tall with no horizontal overflow and the source URL was visible.
 - No deployment performed. The responsive check used a temporary in-memory local event response only.
+
+## Fix Round 2
+
+- Editing a filter during shared restoration now clears the loading results and skeleton, invalidates the stale request, removes the shared event from the URL, and announces: `Choices changed. Submit to refresh public signals.`
+- The deferred-restoration regression now asserts no loading results, skeleton markup, or loading status remains after cancellation.
+- Verification: `npm test` passed with 30 tests. No deployment performed.

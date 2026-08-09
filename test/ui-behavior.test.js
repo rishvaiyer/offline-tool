@@ -187,6 +187,9 @@ test("filter edits invalidate a deferred shared-event restoration", { concurrenc
 
   browser.selects.vertical.value = "beverage";
   browser.nodes["#filters"].emit("change");
+  assert.equal(browser.nodes["#results-section"].hidden, true);
+  assert.equal(browser.nodes["#results"].innerHTML, "");
+  assert.match(browser.nodes["#workflow-status"].textContent, /choices changed.*submit/i);
   firstResponse.resolve(response([rankedEvent]));
   await settle();
   await settle();
