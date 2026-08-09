@@ -337,7 +337,7 @@ function renderBrief(selected) {
         <section><h4>Host questions</h4><ul>${brief.hostQuestions.map((question) => `<li>${escapeHtml(question)}</li>`).join("")}</ul></section>
         <section><h4>Measurement</h4><ul>${brief.measurement.map((item) => `<li><strong>${escapeHtml(item.label)}</strong> ${escapeHtml(item.method)}</li>`).join("")}</ul></section>
         <section><h4>Limitations</h4><ul>${brief.limitations.map((limitation) => `<li>${escapeHtml(limitation)}</li>`).join("")}</ul></section>
-        <section><h4>Source</h4><a href="${escapeHtml(brief.sourceUrl)}" target="_blank" rel="noreferrer">NYC Open Data public record</a></section>
+        <section><h4>Source</h4><a href="${escapeHtml(brief.sourceUrl)}" target="_blank" rel="noreferrer">NYC Open Data public record</a><p class="brief-source-url">${escapeHtml(brief.sourceUrl)}</p></section>
         <section><h4>Methodology</h4><p class="brief-methodology">Compatibility uses public event language, campaign goal, audience, geography, and timing. It does not score Host trust, willingness, pricing, capacity, or relationship fit.</p></section>
       </div>
     </details>
@@ -448,9 +448,15 @@ document.querySelector("#custom-start").addEventListener("click", () => openForm
 document.querySelector("#edit-from-start").addEventListener("click", () => showStep(1, true));
 
 form.addEventListener("change", () => {
+  requestTracker.begin();
   state.filters = readFilters();
   state.selectedEventId = null;
   state.brief = null;
+  briefOutput.hidden = true;
+  briefContent.innerHTML = "";
+  briefActionStatus.textContent = "";
+  results.removeAttribute("aria-busy");
+  syncUrl();
   if (state.mode === "sample") {
     state.mode = "custom";
     sampleBadge.hidden = true;

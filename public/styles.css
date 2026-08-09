@@ -207,7 +207,7 @@ a { color: inherit; }
 .brief-summary strong, .brief-details h4 { display: block; color: var(--green-deep); font: 850 9px var(--mono); letter-spacing: .08em; text-transform: uppercase; }
 .brief-summary p { margin: 4px 0 0 !important; }
 .brief-details { margin-top: 14px; border: 1px solid rgba(47, 125, 67, .34); border-radius: 11px; background: rgba(255, 253, 247, .56); }
-.brief-details summary { padding: 12px; color: var(--green-deep); font: 850 10px var(--mono); letter-spacing: .07em; text-transform: uppercase; }
+.brief-details summary { display: flex; min-height: 44px; align-items: center; padding: 12px; color: var(--green-deep); font: 850 10px var(--mono); letter-spacing: .07em; text-transform: uppercase; }
 .brief-details summary::after { margin-left: auto; content: "+"; font-size: 17px; }
 .brief-details[open] summary::after { content: "−"; }
 .brief-details-content { display: grid; gap: 12px; padding: 0 12px 14px; }
@@ -216,6 +216,7 @@ a { color: inherit; }
 .brief-details-content ul { margin: 0; padding-left: 18px; color: var(--muted); font: 11px/1.5 var(--mono); }
 .brief-details-content li + li { margin-top: 4px; }
 .brief-details-content a { color: var(--green-deep); font-weight: 800; overflow-wrap: anywhere; }
+.brief-source-url { margin: 6px 0 0 !important; overflow-wrap: anywhere; font: 10px/1.45 var(--mono); }
 .brief-methodology { margin: 0 !important; font: 11px/1.5 var(--mono); }
 .brief-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
 .brief-actions .button { flex: 1 1 140px; }
