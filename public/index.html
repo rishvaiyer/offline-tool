@@ -3,43 +3,74 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="theme-color" content="#143f26" />
+    <meta name="theme-color" content="#173721" />
     <title>Offline Signal Planner</title>
     <meta name="description" content="A transparent public-event signal planner for community-first campaigns." />
     <link rel="stylesheet" href="/styles.css" />
   </head>
   <body>
-    <main>
+    <main class="site-shell">
       <header class="topbar">
-        <a class="brand" href="/" aria-label="Offline Signal Planner home"><span>✳</span> OFFLINE / SIGNAL PLANNER</a>
-        <a class="source-link" href="https://data.cityofnewyork.us/id/tvpp-9vvx" target="_blank" rel="noreferrer">NYC Open Data ↗</a>
+        <a class="brand" href="/" aria-label="Offline Signal Planner home"><span class="brand-mark">✳</span><span>OFFLINE / SIGNAL PLANNER</span></a>
+        <nav class="topnav" aria-label="Utility navigation">
+          <a href="#planner">build a brief ↓</a>
+          <a href="https://github.com/rishvaiyer/offline-tool" target="_blank" rel="noreferrer">view on GitHub ↗</a>
+        </nav>
       </header>
 
-      <section class="hero">
-        <div>
-          <p class="eyebrow">PUBLIC SIGNALS / NYC</p>
-          <h1>Find the gathering before you buy the attention.</h1>
-          <p class="lede">A transparent starting point for thinking about community-first campaign opportunities in public NYC event records.</p>
+      <section class="hero" aria-labelledby="hero-title">
+        <div class="hero-copy">
+          <p class="eyebrow">PUBLIC SIGNALS / NYC / LIVE SNAPSHOT</p>
+          <h1 id="hero-title">Find the gathering before you buy the attention.</h1>
+          <p class="lede">A transparent starting point for turning a campaign brief into a shortlist of real places where people are already showing up.</p>
+          <div class="hero-actions">
+            <a class="button button-primary" href="#planner">Build a brief <span>↓</span></a>
+            <a class="button button-quiet" href="https://github.com/rishvaiyer/offline-tool" target="_blank" rel="noreferrer">View the tool on GitHub ↗</a>
+          </div>
         </div>
-        <aside class="note"><b>Important</b><br />These are public-event signals, not Offline’s private host inventory. Match scores are visible planning heuristics, not a prediction of attendance or trust.</aside>
+        <aside class="hero-note" aria-label="Data boundary">
+          <div class="note-pin" aria-hidden="true"></div>
+          <p class="note-label">FIELD NOTE / 001</p>
+          <p>Start with the room. Then decide what the brand can add that makes being there better.</p>
+          <small>Public records only. No private host inventory is implied.</small>
+        </aside>
       </section>
 
-      <section class="planner" aria-label="Signal planner">
+      <section class="planner" id="planner" aria-label="Signal planner">
         <div class="planner-head">
-          <div><p class="eyebrow">LIVE EXPLORER</p><h2>Make the brief specific.</h2></div>
-          <p id="freshness" class="freshness" aria-live="polite">Loading public records...</p>
+          <div>
+            <p class="eyebrow">LIVE EXPLORER / MAKE IT SPECIFIC</p>
+            <h2>Build a brief. Get a room.</h2>
+            <p class="planner-intro">Choose a point of view and the planner will rank current NYC event signals with visible reasons.</p>
+          </div>
+          <p id="freshness" class="freshness" aria-live="polite"><span class="status-dot" aria-hidden="true"></span> Loading public records...</p>
         </div>
+
         <form id="filters" class="filters">
           <div class="filter-field"><label for="vertical">Brand vertical</label><select name="vertical" id="vertical"><option value="athletic">Athletic</option><option value="beverage">Food &amp; Bev</option><option value="wellness">Wellness</option><option value="beauty">Beauty</option><option value="fashion">Fashion</option><option value="fintech">Fintech</option><option value="apps">Consumer app</option></select></div>
           <div class="filter-field"><label for="goal">Campaign goal</label><select name="goal" id="goal"><option value="sampling">Sampling</option><option value="awareness">Awareness</option><option value="signups">Signups</option><option value="content">Content</option></select></div>
           <div class="filter-field"><label for="borough">Borough</label><select name="borough" id="borough"><option value="All">All boroughs</option></select></div>
           <div class="filter-field"><label for="eventType">Event type</label><select name="eventType" id="eventType"><option value="All">All event types</option></select></div>
         </form>
+
+        <div class="results-bar">
+          <div><p class="eyebrow">YOUR SHORTLIST</p><h3>Signals worth a closer look</h3></div>
+          <p id="result-summary" class="result-summary" aria-live="polite"></p>
+        </div>
         <div class="stats" id="stats" aria-live="polite"></div>
         <div id="results" class="results" aria-live="polite"></div>
+
+        <details class="method-note">
+          <summary><span>How this stays honest</span><span class="summary-action">unfold</span></summary>
+          <div class="method-content">
+            <p><strong>Observed data:</strong> public NYC event records, fetched on demand and ranked with a transparent heuristic based on the selected vertical, goal, place, and event language.</p>
+            <p><strong>Not measured here:</strong> attendance, host trust, pricing, conversion, or whether a host would welcome a brand. Those require consent and a real relationship.</p>
+            <a href="https://data.cityofnewyork.us/id/tvpp-9vvx" target="_blank" rel="noreferrer">Open the source dataset ↗</a>
+          </div>
+        </details>
       </section>
     </main>
-    <footer>Built as a public-data prototype. It does not represent an affiliation with Offline.</footer>
+    <footer>Built as a public-data prototype for thinking about better offline campaigns. <a href="https://github.com/rishvaiyer/offline-tool" target="_blank" rel="noreferrer">Source on GitHub ↗</a></footer>
     <script type="module" src="/app.js"></script>
   </body>
 </html>
