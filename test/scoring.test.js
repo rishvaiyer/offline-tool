@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
-import { normaliseEvent, prepareEvents } from "../src/scoring.js";
+import { normaliseEvent, prepareEvents, rankEvents } from "../src/scoring.js";
 
 const rawEvent = {
   event_id: "950351",
@@ -121,4 +121,27 @@ test("uses stable start and identifier ordering for equal scores", () => {
   }, new Date("2026-08-09T12:00:00Z"));
 
   assert.deepEqual(prepared.results.map(({ event }) => event.id), ["a", "z"]);
+});
+
+test("rankEvents excludes youth unless families is explicitly selected", () => {
+  const filters = {
+    vertical: "athletic", goal: "sampling", borough: "Brooklyn", eventType: "All"
+  };
+  const nonFamily = rankEvents([fixtures[1]], { ...filters, audience: "adults" });
+  const family = rankEvents([fixtures[1]], { ...filters, audience: "families" });
+
+  assert.deepEqual(nonFamily, []);
+  assert.equal(family[0].event.id, "youth-1");
+});
+
+test("rankEvents preserves the eventType filter", () => {
+  const ranked = rankEvents([fixtures[0], fixtures[3]], {
+    vertical: "athletic",
+    goal: "sampling",
+    audience: "adults",
+    borough: "Brooklyn",
+    eventType: "Market"
+  });
+
+  assert.deepEqual(ranked.map(({ event }) => event.id), ["market-1"]);
 });

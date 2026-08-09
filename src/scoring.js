@@ -106,9 +106,14 @@ export function prepareEvents(events, filters, now = new Date()) {
 }
 
 export function rankEvents(events, filters) {
-  return prepareEvents(events, {
+  const eventType = filters.eventType ?? "All";
+  const scopedEvents = eventType === "All"
+    ? events
+    : events.filter((event) => event.type === eventType);
+
+  return prepareEvents(scopedEvents, {
     ...filters,
-    audience: "families",
+    audience: filters.audience ?? "adults",
     energy: filters.energy ?? "any",
     scale: filters.scale ?? "any"
   }).results.map((result) => ({
