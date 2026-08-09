@@ -33,15 +33,26 @@ test("keeps primary source and selection actions visible on three-card shortlist
   assert.notEqual(disclosureEnd, -1);
   assert.ok(primaryTemplate.indexOf("View source record") > disclosureEnd);
   assert.ok(primaryTemplate.indexOf("Build a brief around this") > disclosureEnd);
-  assert.match(app, /events\.slice\(0,\s*3\)/);
+  assert.match(app, /shortlistPresentation\(events\)/);
 });
 
 test("defines mobile, touch-target, reduced-motion, and print contracts", async () => {
   const css = await source("public/styles.css");
 
-  assert.match(css, /min-height:\s*44px/);
+  assert.match(css, /\.brand\s*\{[^}]*min-height:\s*44px/);
+  assert.match(css, /\.method-note \.disclosure-content a\s*\{[^}]*min-height:\s*44px/);
   assert.match(css, /@media \(max-width:\s*390px\)/);
   assert.match(css, /@media \(max-width:\s*390px\)[\s\S]*\.card-actions \.button\s*\{[^}]*flex:\s*none/);
   assert.match(css, /@media \(prefers-reduced-motion:\s*reduce\)/);
   assert.match(css, /@media print/);
+});
+
+test("keeps primary decision evidence readable at mobile sizes", async () => {
+  const css = await source("public/styles.css");
+
+  assert.match(css, /\.event-type\s*\{[^}]*font-size:\s*10px/);
+  assert.match(css, /\.mini-label\s*\{[^}]*font-size:\s*10px/);
+  assert.match(css, /\.component-list li\s*\{[^}]*font:\s*10px\/1\.4/);
+  assert.match(css, /\.evidence-grid ul\s*\{[^}]*font:\s*11px\/1\.5/);
+  assert.match(css, /\.event-details p\s*\{[^}]*font:\s*11px\/1\.5/);
 });

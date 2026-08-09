@@ -1,3 +1,15 @@
+import {
+  createRequestTracker,
+  escapeHtml,
+  metadataText,
+  plannerUrl,
+  resetCustomState,
+  revealElement,
+  shortlistPresentation,
+  sourceUrl,
+  statsRows
+} from "./planner.js";
+
 const FILTER_KEYS = ["vertical", "goal", "audience", "borough", "energy", "scale"];
 const DEFAULT_FILTERS = {
   vertical: "athletic",
@@ -35,6 +47,8 @@ const stepNumber = document.querySelector("#step-number");
 const sampleBadge = document.querySelector("#sample-badge");
 const sourceMeta = document.querySelector("#source-meta");
 const briefOutput = document.querySelector("#brief-output");
+const resultsTitle = document.querySelector("#results-title");
+const requestTracker = createRequestTracker();
 
 const dateTime = new Intl.DateTimeFormat("en-US", {
   month: "short",
@@ -43,7 +57,6 @@ const dateTime = new Intl.DateTimeFormat("en-US", {
   hour: "numeric",
   minute: "2-digit"
 });
-const shortDate = new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric" });
 const componentLabels = {
   vertical: "Event language",
   goal: "Campaign goal",
@@ -51,16 +64,6 @@ const componentLabels = {
   geography: "Geography",
   timing: "Timing"
 };
-
-const escapeHtml = (value) => String(value ?? "").replace(/[&<>\"']/g, (character) => ({
-  "&": "&amp;",
-  "<": "&lt;",
-  ">": "&gt;",
-  '"': "&quot;",
-  "'": "&#039;"
-}[character]));
-
-const sourceFor = (id) => `https://data.cityofnewyork.us/resource/tvpp-9vvx.json?event_id=${encodeURIComponent(id)}`;
 
 function formatDate(value, fallback = "Date not listed") {
   const date = new Date(value);
@@ -79,11 +82,22 @@ function setFilters(filters) {
 }
 
 function syncUrl() {
-  const url = new URL(window.location.href);
-  FILTER_KEYS.forEach((key) => url.searchParams.set(key, state.filters[key]));
-  if (state.selectedEventId) url.searchParams.set("event", state.selectedEventId);
-  else url.searchParams.delete("event");
-  window.history.replaceState({}, "", url);
+  window.history.replaceState({}, "", plannerUrl(window.location.href, state.filters, state.selectedEventId));
+}
+
+function reducedMotionRequested() {
+  return window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false;
+}
+
+function clearPriorOutput() {
+  requestTracker.begin();
+  resultsSection.hidden = true;
+  results.innerHTML = "";
+  stats.innerHTML = "";
+  resultSummary.textContent = "";
+  briefOutput.hidden = true;
+  briefOutput.innerHTML = "";
+  sourceMeta.textContent = metadataText(null);
 }
 
 function setOptions(select, values, allLabel) {
@@ -104,10 +118,10 @@ function showStep(number, moveFocus = false) {
 }
 
 function openForm(mode) {
-  state.mode = mode;
   form.hidden = false;
   sampleBadge.hidden = mode !== "sample";
   if (mode === "sample") {
+    state.mode = "sample";
     setFilters(SAMPLE_FILTERS);
     showStep(3);
     workflowStatus.textContent = "Fictional sample loaded. Finding current public signals now.";
@@ -115,10 +129,13 @@ function openForm(mode) {
     return;
   }
 
+  resetCustomState(state, DEFAULT_FILTERS);
   setFilters(DEFAULT_FILTERS);
+  clearPriorOutput();
+  syncUrl();
   showStep(1, true);
   workflowStatus.textContent = "Custom brief started. Six choices are grouped into three quick steps on mobile.";
-  document.querySelector("#planner")?.scrollIntoView({ behavior: "smooth", block: "start" });
+  revealElement(document.querySelector("#planner"), { reducedMotion: reducedMotionRequested() });
 }
 
 function componentList(components = {}) {
@@ -159,7 +176,7 @@ function primaryCard(result, index) {
       </details>
 
       <div class="card-actions">
-        <a class="button button-quiet source-action" href="${sourceFor(event.id)}" target="_blank" rel="noreferrer"><span class="source-type">Government data</span> View source record</a>
+        <a class="button button-quiet source-action" href="${sourceUrl(event.id)}" target="_blank" rel="noreferrer"><span class="source-type">Government data</span> View source record</a>
         <button class="button button-primary select-action" type="button" data-select-event="${escapeHtml(event.id)}">Build a brief around this</button>
       </div>
     </article>
@@ -173,7 +190,7 @@ function secondaryCard(result) {
       <div><p class="event-type">${escapeHtml(event.type || "Public gathering")}</p><h4>${escapeHtml(event.name)}</h4><p>${escapeHtml(formatDate(event.start))} · ${escapeHtml(event.borough || "Borough not listed")}</p></div>
       <span class="secondary-score">${score} / 90</span>
       <div class="secondary-actions">
-        <a href="${sourceFor(event.id)}" target="_blank" rel="noreferrer">View source record</a>
+        <a href="${sourceUrl(event.id)}" target="_blank" rel="noreferrer">View source record</a>
         <button type="button" data-select-event="${escapeHtml(event.id)}">Select</button>
       </div>
     </article>
@@ -181,16 +198,17 @@ function secondaryCard(result) {
 }
 
 function renderStats(counts = {}) {
-  stats.innerHTML = [
-    [counts.reviewed ?? 0, "records reviewed"],
-    [counts.qualified ?? 0, "qualified signals"],
-    [(counts.excluded ?? 0) + (counts.duplicates ?? 0), "excluded or duplicate"]
-  ].map(([value, label]) => `<div class="stat"><strong>${value}</strong><span>${label}</span></div>`).join("");
+  stats.innerHTML = statsRows(counts)
+    .map(([value, label]) => `<div class="stat"><strong>${value}</strong><span>${label}</span></div>`)
+    .join("");
 }
 
 function renderEvents(events) {
-  if (!events.length) {
-    resultSummary.textContent = "No qualified signals";
+  const presentation = shortlistPresentation(events);
+  resultsTitle.textContent = presentation.heading;
+  resultSummary.textContent = presentation.summary;
+
+  if (!presentation.primary.length) {
     results.innerHTML = `
       <div class="state-card empty-state">
         <strong>No public signals fit this combination.</strong>
@@ -200,37 +218,26 @@ function renderEvents(events) {
     return;
   }
 
-  const primary = events.slice(0, 3);
-  const additional = events.slice(3, 12);
-  resultSummary.textContent = primary.length === 3
-    ? "3 primary signals"
-    : `${primary.length} qualified ${primary.length === 1 ? "signal" : "signals"}`;
   results.innerHTML = `
-    <div class="primary-results">${primary.map(primaryCard).join("")}</div>
-    ${additional.length ? `
+    <div class="primary-results">${presentation.primary.map(primaryCard).join("")}</div>
+    ${presentation.additional.length ? `
       <details class="more-results">
-        <summary>See ${additional.length} additional qualified ${additional.length === 1 ? "record" : "records"}</summary>
-        <div class="secondary-results">${additional.map(secondaryCard).join("")}</div>
+        <summary>See ${presentation.additional.length} additional qualified ${presentation.additional.length === 1 ? "record" : "records"}</summary>
+        <div class="secondary-results">${presentation.additional.map(secondaryCard).join("")}</div>
       </details>` : ""}
   `;
 }
 
 function renderMetadata(data) {
-  const fetched = new Date(data.fetchedAt);
-  const start = new Date(data.queryWindow?.start);
-  const end = new Date(data.queryWindow?.end);
-  const fetchedLabel = Number.isNaN(fetched.getTime()) ? "Fetch time unavailable" : `Fetched ${dateTime.format(fetched)}`;
-  const windowLabel = Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())
-    ? "Query window unavailable"
-    : `Window ${shortDate.format(start)} to ${shortDate.format(end)}`;
-  const capLabel = data.capped ? "Source response reached its 1,000-record review cap." : "Source response did not reach its 1,000-record review cap.";
-  sourceMeta.textContent = `${fetchedLabel}. ${windowLabel}. ${capLabel}`;
+  sourceMeta.textContent = metadataText(data);
 }
 
 function renderLoading() {
   resultsSection.hidden = false;
+  resultsTitle.textContent = "Finding public signals";
   resultSummary.textContent = "Loading public records";
   stats.innerHTML = "";
+  sourceMeta.textContent = metadataText(null);
   results.setAttribute("aria-busy", "true");
   results.innerHTML = `<div class="primary-results loading-grid" aria-hidden="true">${Array.from({ length: 3 }, () => `
     <div class="signal-card skeleton-card"><span></span><span></span><span></span><span></span></div>
@@ -238,8 +245,10 @@ function renderLoading() {
 }
 
 function renderError(message) {
+  resultsTitle.textContent = "Public signals unavailable";
   resultSummary.textContent = "Data unavailable";
   stats.innerHTML = "";
+  sourceMeta.textContent = metadataText(null);
   results.innerHTML = `
     <div class="state-card error-state" role="alert">
       <strong>Public records did not load.</strong>
@@ -249,6 +258,7 @@ function renderError(message) {
 }
 
 async function loadEvents() {
+  const requestId = requestTracker.begin();
   state.filters = readFilters();
   state.selectedEventId = null;
   state.brief = null;
@@ -263,22 +273,26 @@ async function loadEvents() {
     const data = await response.json();
     if (!response.ok) throw new Error(data.error || "Public-event data is unavailable right now.");
 
-    state.events = Array.isArray(data.events) ? data.events : [];
-    setOptions(boroughSelect, data.facets?.boroughs ?? [], "All boroughs");
-    renderStats(data.counts);
-    renderEvents(state.events);
-    renderMetadata(data);
-    resultsSection.hidden = false;
-    workflowStatus.textContent = state.events.length
-      ? "Shortlist ready. Compare the evidence, open a source, then choose one signal."
-      : "No qualified signals were found. Your brief choices are preserved.";
-    document.querySelector("#results-title")?.focus({ preventScroll: true });
+    if (!requestTracker.commit(requestId, () => {
+      state.events = Array.isArray(data.events) ? data.events : [];
+      setOptions(boroughSelect, data.facets?.boroughs ?? [], "All boroughs");
+      renderStats(data.counts);
+      renderEvents(state.events);
+      renderMetadata(data);
+      resultsSection.hidden = false;
+      workflowStatus.textContent = state.events.length
+        ? "Shortlist ready. Compare the evidence, open a source, then choose one signal."
+        : "No qualified signals were found. Your brief choices are preserved.";
+      revealElement(resultsTitle, { focus: true, reducedMotion: reducedMotionRequested() });
+    })) return;
   } catch (error) {
-    state.events = [];
-    renderError(error instanceof Error ? error.message : "Public-event data is unavailable right now.");
-    workflowStatus.textContent = "Public records are unavailable. Your choices are preserved and retry is ready.";
+    if (!requestTracker.commit(requestId, () => {
+      state.events = [];
+      renderError(error instanceof Error ? error.message : "Public-event data is unavailable right now.");
+      workflowStatus.textContent = "Public records are unavailable. Your choices are preserved and retry is ready.";
+    })) return;
   } finally {
-    results.removeAttribute("aria-busy");
+    if (requestTracker.isCurrent(requestId)) results.removeAttribute("aria-busy");
   }
 }
 
@@ -289,9 +303,9 @@ function renderBrief(selected) {
     <p class="eyebrow">STEP 3 / SIGNAL SELECTED</p>
     <h3 id="brief-title" tabindex="-1">Ready to build around ${escapeHtml(selected.event.name)}</h3>
     <p>This public signal is attached to your six choices. The next brief step can propose a direction without adding attendance, pricing, or outcome claims.</p>
-    <a class="button button-quiet" href="${sourceFor(selected.event.id)}" target="_blank" rel="noreferrer"><span class="source-type">Government data</span> Reopen source record</a>
+    <a class="button button-quiet" href="${sourceUrl(selected.event.id)}" target="_blank" rel="noreferrer"><span class="source-type">Government data</span> Reopen source record</a>
   `;
-  document.querySelector("#brief-title")?.focus({ preventScroll: true });
+  revealElement(document.querySelector("#brief-title"), { focus: true, reducedMotion: reducedMotionRequested() });
   workflowStatus.textContent = `${selected.event.name} selected. The public source remains attached.`;
 }
 
@@ -336,7 +350,7 @@ results.addEventListener("click", (event) => {
   if (event.target.closest("[data-retry]")) loadEvents();
   if (event.target.closest("[data-edit-brief]")) {
     showStep(1, true);
-    form.scrollIntoView({ behavior: "smooth", block: "start" });
+    revealElement(form, { reducedMotion: reducedMotionRequested() });
   }
 });
 
