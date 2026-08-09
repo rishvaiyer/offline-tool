@@ -127,7 +127,7 @@ export function createApp({ fetchImpl = globalThis.fetch, now = () => new Date()
       const { results, counts } = prepareEvents(data.events, filters, currentDate(now));
 
       response.json({
-        events: results,
+        events: results.slice(0, 12),
         facets: facetsFor(data.events),
         fetchedAt: data.fetchedAt,
         source,

@@ -87,9 +87,12 @@ export function metadataText(data) {
   const start = formatUtcDate(data.queryWindow?.start);
   const end = formatUtcDate(data.queryWindow?.end);
   const windowLabel = start && end ? `Window ${start} to ${end}` : "Query window unavailable";
+  const reviewLimit = Number.isFinite(Number(data.sourceReviewLimit))
+    ? Number(data.sourceReviewLimit).toLocaleString("en-US")
+    : "configured";
   const capLabel = data.capped
-    ? "Source response reached its 1,000-record review cap."
-    : "Source response did not reach its 1,000-record review cap.";
+    ? `Source response reached its ${reviewLimit}-record review cap.`
+    : `Source response did not reach its ${reviewLimit}-record review cap.`;
   return `${fetchedLabel}. ${windowLabel}. ${capLabel}`;
 }
 

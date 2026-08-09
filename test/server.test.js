@@ -64,12 +64,37 @@ test("returns prepared events with bounded-source metadata", async () => {
   assert.match(body.queryWindow.end, /^2026-/);
   assert.deepEqual(body.facets, { boroughs: ["Brooklyn"], eventTypes: ["Market", "Production Load In", "Sport - Running", "Sport - Youth"] });
   assert.equal(body.events[0].event.id, "adult-1");
+  assert.ok(body.events.length <= 12);
   assert.equal(requests[0].searchParams.get("$limit"), "5000");
   assert.equal(requests[0].searchParams.get("$offset"), "0");
   assert.equal(
     requests[0].searchParams.get("$where"),
     "start_date_time >= '2026-08-09T00:00:00.000' AND start_date_time < '2026-12-07T00:00:00.000'"
   );
+});
+
+test("returns only the twelve highest-ranked events while preserving aggregate counts", async () => {
+  const records = Array.from({ length: 20 }, (_, index) => ({
+    event_id: `run-${index}`,
+    event_name: `Brooklyn Community Run ${index}`,
+    start_date_time: `2026-08-${String(10 + index).padStart(2, "0")}T15:00:00.000`,
+    end_date_time: `2026-08-${String(10 + index).padStart(2, "0")}T17:00:00.000`,
+    event_agency: "Parks",
+    event_type: "Sport - Running",
+    event_borough: "Brooklyn",
+    event_location: `Prospect Park ${index}`
+  }));
+  const app = createApp({
+    fetchImpl: async () => new Response(JSON.stringify(records), { status: 200 }),
+    now: new Date("2026-08-09T12:00:00Z")
+  });
+
+  const response = await request(app, "/api/events?vertical=athletic&goal=sampling&audience=adults&borough=Brooklyn");
+  const body = await response.json();
+
+  assert.equal(response.status, 200);
+  assert.equal(body.events.length, 12);
+  assert.equal(body.counts.qualified, 20);
 });
 
 test("paginates across the full query window before ranking signals", async () => {

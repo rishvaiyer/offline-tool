@@ -326,11 +326,13 @@ test("loading or error metadata clears the prior successful source snapshot", ()
       start: "2026-08-09T00:00:00.000Z",
       end: "2026-12-07T00:00:00.000Z"
     },
-    capped: false
+    capped: false,
+    sourceReviewLimit: 50000
   });
   const cleared = planner.metadataText(null);
 
   assert.match(success, /Window Aug 9, 2026 to Dec 7, 2026/);
+  assert.match(success, /50,000-record review cap/);
   assert.doesNotMatch(cleared, /Aug 9|Dec 7|Fetched/);
   assert.equal(cleared, "Source details appear after a successful search.");
 });

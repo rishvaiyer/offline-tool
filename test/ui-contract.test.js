@@ -52,7 +52,7 @@ test("defines mobile, touch-target, reduced-motion, and print contracts", async 
 
   assert.match(css, /\.brand\s*\{[^}]*min-height:\s*44px/);
   assert.match(css, /\.method-note \.disclosure-content a\s*\{[^}]*min-height:\s*44px/);
-  assert.match(css, /@media \(max-width:\s*430px\)/);
+  assert.match(css, /@media \(max-width:\s*520px\)/);
   assert.match(css, /@media \(max-width:\s*430px\)[\s\S]*\.card-actions \.button\s*\{[^}]*flex:\s*none/);
   assert.match(css, /@media \(max-width:\s*430px\)[\s\S]*\.brief-actions \.button\s*\{[^}]*flex:\s*none/);
   assert.match(css, /@media \(prefers-reduced-motion:\s*reduce\)/);
@@ -62,9 +62,9 @@ test("defines mobile, touch-target, reduced-motion, and print contracts", async 
 test("keeps the guided form compact on current phone widths", async () => {
   const css = await source("public/styles.css");
 
-  assert.match(css, /@media \(max-width:\s*430px\)[\s\S]*\.form-step:not\(\.is-current\)\s*\{[^}]*display:\s*none/);
-  assert.match(css, /@media \(max-width:\s*430px\)[\s\S]*\.step-actions\s*\{[^}]*display:\s*flex/);
-  assert.match(css, /@media \(max-width:\s*430px\)[\s\S]*\.desktop-submit\s*\{[^}]*display:\s*none/);
+  assert.match(css, /@media \(max-width:\s*520px\)[\s\S]*\.form-step:not\(\.is-current\)\s*\{[^}]*display:\s*none/);
+  assert.match(css, /@media \(max-width:\s*520px\)[\s\S]*\.step-actions\s*\{[^}]*display:\s*flex/);
+  assert.match(css, /@media \(max-width:\s*520px\)[\s\S]*\.desktop-submit\s*\{[^}]*display:\s*none/);
 });
 
 test("offers portable brief actions and safe shared-state restoration", async () => {
@@ -102,8 +102,8 @@ test("keeps primary decision evidence readable at mobile sizes", async () => {
 test("raises decision-relevant mobile copy above tiny type", async () => {
   const css = await source("public/styles.css");
 
-  assert.match(css, /@media \(max-width:\s*430px\)[\s\S]*\.filter-field small[\s\S]*font-size:\s*12px/);
-  assert.match(css, /@media \(max-width:\s*430px\)[\s\S]*\.stat span[\s\S]*font-size:\s*11px/);
-  assert.match(css, /@media \(max-width:\s*430px\)[\s\S]*\.event-meta[\s\S]*font-size:\s*12px/);
-  assert.match(css, /@media \(max-width:\s*430px\)[\s\S]*\.event-details p[\s\S]*font-size:\s*12px/);
+  assert.match(css, /@media \(max-width:\s*520px\)[\s\S]*\.filter-field small[\s\S]*font-size:\s*12px/);
+  assert.match(css, /@media \(max-width:\s*520px\)[\s\S]*\.stat span[\s\S]*font-size:\s*11px/);
+  assert.match(css, /@media \(max-width:\s*520px\)[\s\S]*\.event-meta[\s\S]*font-size:\s*12px/);
+  assert.match(css, /@media \(max-width:\s*520px\)[\s\S]*\.event-details p[\s\S]*font-size:\s*12px/);
 });
