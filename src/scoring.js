@@ -24,6 +24,35 @@ const unknownSignals = [
   "capacity",
   "relationship fit"
 ];
+const newYorkOffsetFormatter = new Intl.DateTimeFormat("en-US", {
+  timeZone: "America/New_York",
+  timeZoneName: "longOffset"
+});
+
+function newYorkOffsetMs(timestamp) {
+  const zoneName = newYorkOffsetFormatter
+    .formatToParts(new Date(timestamp))
+    .find(({ type }) => type === "timeZoneName")?.value;
+  const match = /^GMT([+-])(\d{2}):(\d{2})$/.exec(zoneName ?? "");
+  if (!match) return 0;
+  const direction = match[1] === "+" ? 1 : -1;
+  return direction * (Number(match[2]) * 60 + Number(match[3])) * 60 * 1000;
+}
+
+function eventDate(value) {
+  const text = String(value ?? "");
+  if (/Z$|[+-]\d{2}:?\d{2}$/.test(text)) return new Date(text);
+
+  const match = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.(\d{1,3}))?$/.exec(text);
+  if (!match) return new Date(Number.NaN);
+  const localAsUtc = Date.UTC(
+    Number(match[1]), Number(match[2]) - 1, Number(match[3]),
+    Number(match[4]), Number(match[5]), Number(match[6]), Number((match[7] ?? "0").padEnd(3, "0"))
+  );
+  let timestamp = localAsUtc - newYorkOffsetMs(localAsUtc);
+  timestamp = localAsUtc - newYorkOffsetMs(timestamp);
+  return new Date(timestamp);
+}
 
 export function normaliseEvent(record) {
   return {
@@ -55,7 +84,7 @@ function isYouth(event) {
 }
 
 function scoreEvent(event, filters, now) {
-  const start = new Date(event.start);
+  const start = eventDate(event.start);
   const vertical = matches(verticalSignals[filters.vertical] ?? [], event) ? 30 : 0;
   const goal = matches(goalSignals[filters.goal] ?? [], event) ? 25 : 0;
   const audience = filters.audience === "families" || !isYouth(event) ? 15 : 0;
@@ -86,7 +115,15 @@ export function prepareEvents(events, filters, now = new Date()) {
   for (const event of events) {
     const outOfScope = filters.borough !== "All" && event.borough !== filters.borough;
     const wrongAudience = filters.audience !== "families" && isYouth(event);
-    if (outOfScope || wrongAudience || exclusionPattern.test(`${event.name ?? ""} ${event.type ?? ""}`)) {
+    const start = eventDate(event.start);
+    const outOfTime = Number.isNaN(start.getTime()) || start <= now;
+    if (outOfScope || wrongAudience || outOfTime || exclusionPattern.test(`${event.name ?? ""} ${event.type ?? ""}`)) {
+      counts.excluded += 1;
+      continue;
+    }
+
+    const scored = scoreEvent(event, filters, now);
+    if (scored.components.vertical === 0 && scored.components.goal === 0) {
       counts.excluded += 1;
       continue;
     }
@@ -97,7 +134,7 @@ export function prepareEvents(events, filters, now = new Date()) {
       continue;
     }
     seen.add(key);
-    results.push(scoreEvent(event, filters, now));
+    results.push(scored);
   }
 
   counts.qualified = results.length;

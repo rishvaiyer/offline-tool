@@ -5,7 +5,14 @@ import { normaliseEvent, prepareEvents } from "./src/scoring.js";
 const port = process.env.PORT || 3000;
 const source = "https://data.cityofnewyork.us/resource/tvpp-9vvx.json";
 const cacheDurationMs = 5 * 60 * 1000;
-const sourceLimit = 1000;
+const sourcePageSize = 5000;
+const sourceMaxRecords = 50000;
+const newYorkDateFormatter = new Intl.DateTimeFormat("en-US", {
+  timeZone: "America/New_York",
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit"
+});
 
 function cleanFilter(value, fallback) {
   return typeof value === "string" && value.trim() ? value.trim() : fallback;
@@ -28,14 +35,14 @@ function currentDate(now) {
 
 function queryWindowFor(now) {
   const current = currentDate(now);
-  const start = new Date(Date.UTC(
-    current.getUTCFullYear(),
-    current.getUTCMonth(),
-    current.getUTCDate()
-  ));
-  const end = new Date(start);
-  end.setUTCDate(end.getUTCDate() + 120);
-  return { start: start.toISOString(), end: end.toISOString() };
+  const parts = Object.fromEntries(
+    newYorkDateFormatter.formatToParts(current).map(({ type, value }) => [type, value])
+  );
+  const startDate = new Date(Date.UTC(Number(parts.year), Number(parts.month) - 1, Number(parts.day)));
+  const endDate = new Date(startDate);
+  endDate.setUTCDate(endDate.getUTCDate() + 120);
+  const floating = (date) => `${date.toISOString().slice(0, 10)}T00:00:00.000`;
+  return { start: floating(startDate), end: floating(endDate) };
 }
 
 function facetsFor(events) {
@@ -45,7 +52,7 @@ function facetsFor(events) {
   };
 }
 
-export function createApp({ fetchImpl = globalThis.fetch, now = () => new Date() } = {}) {
+export function createApp({ fetchImpl = globalThis.fetch, now = () => new Date(), upstreamTimeoutMs = 10000 } = {}) {
   const app = express();
   const cache = new Map();
 
@@ -55,21 +62,48 @@ export function createApp({ fetchImpl = globalThis.fetch, now = () => new Date()
     const cached = cache.get(cacheKey);
     if (cached && Date.now() < cached.expiresAt) return cached;
 
-    const query = new URLSearchParams({
-      "$select": "event_id,event_name,start_date_time,end_date_time,event_agency,event_type,event_borough,event_location",
-      "$where": `start_date_time >= '${queryWindow.start.replace(/Z$/, "")}' AND start_date_time < '${queryWindow.end.replace(/Z$/, "")}'`,
-      "$order": "start_date_time ASC",
-      "$limit": String(sourceLimit + 1)
-    });
-    const response = await fetchImpl(`${source}?${query}`);
+    const records = [];
+    let capped = false;
+    const abortController = new AbortController();
+    const timeout = setTimeout(() => abortController.abort(), upstreamTimeoutMs);
+    try {
+      while (records.length < sourceMaxRecords) {
+        const query = new URLSearchParams({
+          "$select": "event_id,event_name,start_date_time,end_date_time,event_agency,event_type,event_borough,event_location",
+          "$where": `start_date_time >= '${queryWindow.start.replace(/Z$/, "")}' AND start_date_time < '${queryWindow.end.replace(/Z$/, "")}'`,
+          "$order": "start_date_time ASC,event_id ASC",
+          "$limit": String(sourcePageSize),
+          "$offset": String(records.length)
+        });
+        const response = await fetchImpl(`${source}?${query}`, { signal: abortController.signal });
 
-    if (!response.ok) throw new Error(`NYC Open Data returned ${response.status}`);
+        if (!response.ok) throw new Error(`NYC Open Data returned ${response.status}`);
 
-    const records = await response.json();
-    if (!Array.isArray(records)) throw new Error("NYC Open Data returned an invalid payload");
-    const capped = records.length > sourceLimit;
+        const page = await response.json();
+        if (!Array.isArray(page)) throw new Error("NYC Open Data returned an invalid payload");
+        records.push(...page.slice(0, sourceMaxRecords - records.length));
+        if (page.length < sourcePageSize) break;
+      }
+
+      if (records.length === sourceMaxRecords) {
+        const probe = new URLSearchParams({
+          "$select": "event_id",
+          "$where": `start_date_time >= '${queryWindow.start.replace(/Z$/, "")}' AND start_date_time < '${queryWindow.end.replace(/Z$/, "")}'`,
+          "$order": "start_date_time ASC,event_id ASC",
+          "$limit": "1",
+          "$offset": String(sourceMaxRecords)
+        });
+        const response = await fetchImpl(`${source}?${probe}`, { signal: abortController.signal });
+        if (!response.ok) throw new Error(`NYC Open Data returned ${response.status}`);
+        const page = await response.json();
+        if (!Array.isArray(page)) throw new Error("NYC Open Data returned an invalid payload");
+        capped = page.length > 0;
+      }
+    } finally {
+      clearTimeout(timeout);
+    }
+
     const events = records
-      .slice(0, sourceLimit)
       .filter((record) => record.event_id && record.event_name && record.start_date_time)
       .map(normaliseEvent);
 
@@ -99,7 +133,8 @@ export function createApp({ fetchImpl = globalThis.fetch, now = () => new Date()
         source,
         queryWindow: data.queryWindow,
         counts,
-        capped: data.capped
+        capped: data.capped,
+        sourceReviewLimit: sourceMaxRecords
       });
     } catch {
       response.status(502).json({ error: "Public-event data is unavailable right now. Please try again shortly." });

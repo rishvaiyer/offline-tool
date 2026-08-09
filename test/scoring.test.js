@@ -123,6 +123,51 @@ test("uses stable start and identifier ordering for equal scores", () => {
   assert.deepEqual(prepared.results.map(({ event }) => event.id), ["a", "z"]);
 });
 
+test("interprets floating event times in New York and excludes events that already started", () => {
+  const events = [
+    {
+      ...fixtures[0],
+      id: "already-started",
+      start: "2026-08-09T09:00:00.000",
+      end: "2026-08-09T11:00:00.000"
+    },
+    {
+      ...fixtures[0],
+      id: "future-local",
+      start: "2026-08-09T10:00:00.000",
+      end: "2026-08-09T12:00:00.000",
+      location: "McCarren Park"
+    }
+  ];
+
+  const prepared = prepareEvents(events, {
+    vertical: "athletic", goal: "sampling", audience: "adults", borough: "Brooklyn",
+    energy: "active", scale: "small"
+  }, new Date("2026-08-09T13:30:00Z"));
+
+  assert.deepEqual(prepared.results.map(({ event }) => event.id), ["future-local"]);
+  assert.deepEqual(prepared.counts, { reviewed: 2, qualified: 1, excluded: 1, duplicates: 0 });
+});
+
+test("does not qualify records with no vertical or campaign-goal signal", () => {
+  const unrelated = {
+    ...fixtures[0],
+    id: "unrelated",
+    name: "Neighborhood Gathering",
+    type: "Public Meeting",
+    start: "2026-08-20T18:00:00.000",
+    end: "2026-08-20T20:00:00.000"
+  };
+
+  const prepared = prepareEvents([unrelated], {
+    vertical: "athletic", goal: "sampling", audience: "adults", borough: "Brooklyn",
+    energy: "active", scale: "small"
+  }, new Date("2026-08-09T12:00:00Z"));
+
+  assert.deepEqual(prepared.results, []);
+  assert.deepEqual(prepared.counts, { reviewed: 1, qualified: 0, excluded: 1, duplicates: 0 });
+});
+
 test("rankEvents excludes youth unless families is explicitly selected", () => {
   const filters = {
     vertical: "athletic", goal: "sampling", borough: "Brooklyn", eventType: "All"
