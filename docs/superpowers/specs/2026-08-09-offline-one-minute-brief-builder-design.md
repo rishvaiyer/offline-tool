@@ -54,17 +54,15 @@ The remaining qualified records may stay behind an optional expansion.
 
 ### 4. Generate the campaign brief
 
-Selecting a signal creates a brief with:
+Selecting a signal creates a compact one-screen brief with:
 
 - Campaign intent
 - Selected public gathering signal
 - Why the signal fits the brief
 - A Host-first activation concept
 - The value the brand could add to the room
-- Questions that must be answered with the Host
-- A proposed measurement plan
-- Known data and relationship limitations
-- Direct links to the public source and methodology
+
+One clearly labelled `Open details` control reveals the Host questions, proposed measurement plan, known limitations, public source, and methodology. The collapsed mobile state should be skimmable without a long scroll.
 
 The brief is deterministic and template-based. It must not use hidden AI reasoning or present generated copy as verified fact.
 
