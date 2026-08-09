@@ -109,6 +109,30 @@ function lookupActivation(inputs, event) {
   return clean(scale[eventTypeKey(event)] ?? scale.default ?? ACTIVATION_TEMPLATES.default.default);
 }
 
+function fitCopy(inputs, rankedResult, labels) {
+  const components = rankedResult?.components ?? {};
+  const matched = new Set(rankedResult?.matched ?? []);
+  const dimensions = [
+    ["vertical", `vertical fit for ${labels.vertical}`],
+    ["goal", `goal fit for ${clean(inputs?.goal) || "the selected goal"}`],
+    ["audience", `audience fit for ${labels.audience}`],
+    ["geography", `geography fit for ${labels.borough}`]
+  ];
+  const established = dimensions
+    .filter(([key]) => Number(components[key]) > 0 || matched.has(key))
+    .map(([, description]) => description);
+  const unestablished = dimensions
+    .filter(([key]) => !(Number(components[key]) > 0 || matched.has(key)))
+    .map(([, description]) => description);
+  const evidence = established.length
+    ? `Public signal evidence establishes ${established.join(", ")}.`
+    : "The public record does not establish a positive fit dimension.";
+  const gaps = unestablished.length
+    ? `${unestablished.join(", ")} are not established by the public record.`
+    : "The remaining Host and operational factors are not established by the public record.";
+  return clean(`${evidence} ${gaps} It is a ${labels.scale} direction for a public gathering.`);
+}
+
 export function generateBrief(inputs, rankedResult) {
   const selected = rankedResult?.event ?? {};
   const vertical = label(VERTICAL_LABELS, inputs?.vertical, "brand");
@@ -129,7 +153,7 @@ export function generateBrief(inputs, rankedResult) {
     title: clean(`${vertical[0].toUpperCase()}${vertical.slice(1)} ${clean(inputs?.goal) || "brand moment"} at ${name}`),
     intent: clean(`Help ${audience} experience a ${energy} ${vertical} moment designed to ${goal} in ${borough}.`),
     gathering: clean(`${name} at ${location} in ${eventBorough}`),
-    fit: clean(`This public signal matches the ${vertical} vertical, the ${clean(inputs?.goal) || "selected"} goal, the ${audience} audience, and the ${borough} geography. It is a ${scale} direction for a public gathering.`),
+    fit: fitCopy(inputs, rankedResult, { vertical, audience, borough, scale }),
     activation: clean(`Starting direction: ${lookupActivation(inputs ?? {}, selected)}`),
     valueAdd: clean(GOAL_VALUE_ADDS[inputs?.goal] ?? "Give guests an optional, useful contribution that respects the room."),
     hostQuestions: HOST_QUESTIONS.map(clean),

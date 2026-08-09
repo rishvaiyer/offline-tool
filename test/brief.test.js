@@ -59,3 +59,17 @@ test("uses the selected event source and produces repeatable plain-text fields",
   assert.equal(first.valueAdd.includes("—"), false);
 });
 
+test("does not claim unmatched intent dimensions are a public-signal fit", () => {
+  const partialMatch = generateBrief({ ...inputs, borough: "Queens" }, {
+    ...rankedResult,
+    event: { ...rankedResult.event, id: "partial-1", borough: "Queens" },
+    components: { vertical: 0, goal: 0, audience: 0, geography: 10, timing: 0 },
+    matched: ["geography"]
+  });
+
+  assert.match(partialMatch.fit, /geography/i);
+  assert.match(partialMatch.fit, /not established/i);
+  assert.doesNotMatch(partialMatch.fit, /matches the beverage vertical/i);
+  assert.doesNotMatch(partialMatch.fit, /sampling goal/i);
+  assert.doesNotMatch(partialMatch.fit, /adults audience/i);
+});
