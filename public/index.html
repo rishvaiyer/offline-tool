@@ -4,73 +4,182 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="theme-color" content="#173721" />
-    <title>Offline Signal Planner</title>
-    <meta name="description" content="A transparent public-event signal planner for community-first campaigns." />
+    <title>Offline One-Minute Signal Planner</title>
+    <meta name="description" content="Turn a campaign intent into three transparent NYC public signals in about a minute." />
     <link rel="stylesheet" href="/styles.css" />
   </head>
   <body>
     <main class="site-shell">
       <header class="topbar">
-        <a class="brand" href="/" aria-label="Offline Signal Planner home"><span class="brand-mark">✳</span><span>OFFLINE / SIGNAL PLANNER</span></a>
+        <a class="brand" href="/" aria-label="Offline Signal Planner home"><span class="brand-mark" aria-hidden="true">✳</span><span>OFFLINE / SIGNAL PLANNER</span></a>
         <nav class="topnav" aria-label="Utility navigation">
-          <a href="#planner">build a brief ↓</a>
-          <a href="https://github.com/rishvaiyer/offline-tool" target="_blank" rel="noreferrer">view on GitHub ↗</a>
+          <a href="#planner">one-minute planner</a>
+          <a href="#research">research notes</a>
         </nav>
       </header>
 
       <section class="hero" aria-labelledby="hero-title">
         <div class="hero-copy">
-          <p class="eyebrow">PUBLIC SIGNALS / NYC / LIVE SNAPSHOT</p>
-          <h1 id="hero-title">Find the gathering before you buy the attention.</h1>
-          <p class="lede">A transparent starting point for turning a campaign brief into a shortlist of real places where people are already showing up.</p>
-          <div class="hero-actions">
-            <a class="button button-primary" href="#planner">Build a brief <span>↓</span></a>
-            <a class="button button-quiet" href="https://github.com/rishvaiyer/offline-tool" target="_blank" rel="noreferrer">View the tool on GitHub ↗</a>
+          <p class="eyebrow">ONE MINUTE / THREE PUBLIC SIGNALS</p>
+          <h1 id="hero-title">Find the room before you plan the campaign.</h1>
+          <p class="lede">Start with a fictional sample or set six quick choices. Get a focused shortlist with the evidence and unknowns still attached.</p>
+          <div class="start-actions" aria-label="Choose how to begin">
+            <button class="button button-primary" id="sample-start" type="button">Try a sample brief</button>
+            <button class="button button-quiet" id="custom-start" type="button">Build my own</button>
           </div>
+          <p class="sample-note">Sample uses a clearly fictional beverage-awareness brief. Event records remain public and current.</p>
         </div>
         <aside class="hero-note" aria-label="Data boundary">
-          <div class="note-pin" aria-hidden="true"></div>
-          <p class="note-label">FIELD NOTE / 001</p>
-          <p>Start with the room. Then decide what the brand can add that makes being there better.</p>
-          <small>Public records only. No private host inventory is implied.</small>
+          <span class="tape" aria-hidden="true"></span>
+          <p class="note-label">FIELD NOTE / 01</p>
+          <p>Choose the room. Add something useful. Ask the Host before calling it a plan.</p>
+          <small>Public records only. No private Offline inventory is shown or implied.</small>
         </aside>
       </section>
 
-      <section class="planner" id="planner" aria-label="Signal planner">
+      <section class="planner" id="planner" aria-labelledby="planner-title">
         <div class="planner-head">
           <div>
-            <p class="eyebrow">LIVE EXPLORER / MAKE IT SPECIFIC</p>
-            <h2>Build a brief. Get a room.</h2>
-            <p class="planner-intro">Choose a point of view and the planner will rank current NYC event signals with visible reasons.</p>
+            <p class="eyebrow">BRIEF BUILDER / NYC</p>
+            <h2 id="planner-title">Six choices. Three clear signals.</h2>
+            <p class="planner-intro">Scores explain public-record compatibility. They do not predict attendance, trust, pricing, or outcomes.</p>
           </div>
-          <p id="freshness" class="freshness" aria-live="polite"><span class="status-dot" aria-hidden="true"></span> Loading public records...</p>
+          <details class="disclosure method-note">
+            <summary><span>Sources + methodology</span><span class="summary-action">unfold</span></summary>
+            <div class="disclosure-content">
+              <p id="source-meta">Source details appear after the first search.</p>
+              <p><strong>Public signal score:</strong> event-language and vertical fit 30, campaign-goal fit 25, audience suitability 15, geography 10, timing 10.</p>
+              <p><strong>Excluded:</strong> obvious load-ins, load-outs, setup records, duplicates, out-of-scope boroughs, and youth events unless families are selected.</p>
+              <p><strong>Never scored:</strong> Host trust, willingness, pricing, capacity, and relationship fit.</p>
+              <a href="https://data.cityofnewyork.us/City-Government/Permitted-Event-Information-Historical/tvpp-9vvx/about_data" target="_blank" rel="noreferrer"><span class="source-type">Government data</span> NYC Open Data dataset</a>
+            </div>
+          </details>
         </div>
 
-        <form id="filters" class="filters">
-          <div class="filter-field"><label for="vertical">Brand vertical</label><select name="vertical" id="vertical"><option value="athletic">Athletic</option><option value="beverage">Food &amp; Bev</option><option value="wellness">Wellness</option><option value="beauty">Beauty</option><option value="fashion">Fashion</option><option value="fintech">Fintech</option><option value="apps">Consumer app</option></select></div>
-          <div class="filter-field"><label for="goal">Campaign goal</label><select name="goal" id="goal"><option value="sampling">Sampling</option><option value="awareness">Awareness</option><option value="signups">Signups</option><option value="content">Content</option></select></div>
-          <div class="filter-field"><label for="borough">Borough</label><select name="borough" id="borough"><option value="All">All boroughs</option></select></div>
-          <div class="filter-field"><label for="eventType">Event type</label><select name="eventType" id="eventType"><option value="All">All event types</option></select></div>
+        <p class="workflow-status" id="workflow-status" aria-live="polite">Choose a sample or build your own brief to start.</p>
+
+        <form id="filters" class="filters" hidden>
+          <div class="form-topline">
+            <div>
+              <p class="step-label">STEP <span id="step-number">1</span> OF 3</p>
+              <p class="sample-badge" id="sample-badge" hidden>Fictional sample inputs</p>
+            </div>
+            <button class="text-button" id="edit-from-start" type="button">Review all choices</button>
+          </div>
+
+          <div class="filters-grid">
+            <fieldset class="form-step is-current" data-step="1">
+              <legend>Brand intent</legend>
+              <div class="step-grid">
+                <div class="filter-field">
+                  <label for="vertical">Brand vertical</label>
+                  <select name="vertical" id="vertical" aria-describedby="vertical-help">
+                    <option value="athletic">Athletic</option>
+                    <option value="beverage">Food &amp; beverage</option>
+                    <option value="wellness">Wellness</option>
+                    <option value="beauty">Beauty</option>
+                    <option value="fashion">Fashion</option>
+                    <option value="fintech">Fintech</option>
+                    <option value="apps">Consumer app</option>
+                  </select>
+                  <small id="vertical-help">Used only for public event-language fit.</small>
+                </div>
+                <div class="filter-field">
+                  <label for="goal">Campaign goal</label>
+                  <select name="goal" id="goal">
+                    <option value="sampling">Invite sampling</option>
+                    <option value="awareness">Build awareness</option>
+                    <option value="signups">Invite opt-ins</option>
+                    <option value="content">Create useful content</option>
+                  </select>
+                </div>
+              </div>
+              <div class="step-actions"><button class="button button-primary" type="button" data-next="2">Next: people + place</button></div>
+            </fieldset>
+
+            <fieldset class="form-step" data-step="2">
+              <legend>People and place</legend>
+              <div class="step-grid">
+                <div class="filter-field">
+                  <label for="audience">Intended audience</label>
+                  <select name="audience" id="audience">
+                    <option value="adults">Adults</option>
+                    <option value="families">Families</option>
+                  </select>
+                </div>
+                <div class="filter-field">
+                  <label for="borough">Borough</label>
+                  <select name="borough" id="borough">
+                    <option value="All">All boroughs</option>
+                  </select>
+                </div>
+              </div>
+              <div class="step-actions split-actions">
+                <button class="button button-quiet" type="button" data-back="1">Back</button>
+                <button class="button button-primary" type="button" data-next="3">Next: activation</button>
+              </div>
+            </fieldset>
+
+            <fieldset class="form-step" data-step="3">
+              <legend>Activation shape</legend>
+              <div class="step-grid">
+                <div class="filter-field">
+                  <label for="energy">Desired energy</label>
+                  <select name="energy" id="energy">
+                    <option value="active">Active</option>
+                    <option value="social">Social</option>
+                    <option value="calm">Calm</option>
+                    <option value="any">Open</option>
+                  </select>
+                </div>
+                <div class="filter-field">
+                  <label for="scale">Activation scale</label>
+                  <select name="scale" id="scale">
+                    <option value="small">Small</option>
+                    <option value="medium">Medium</option>
+                    <option value="large">Larger</option>
+                  </select>
+                </div>
+              </div>
+              <div class="step-actions split-actions">
+                <button class="button button-quiet" type="button" data-back="2">Back</button>
+                <button class="button button-primary" type="submit">Show three signals</button>
+              </div>
+            </fieldset>
+          </div>
+
+          <button class="button button-primary desktop-submit" type="submit">Show three public signals</button>
         </form>
 
-        <div class="results-bar">
-          <div><p class="eyebrow">YOUR SHORTLIST</p><h3>Signals worth a closer look</h3></div>
-          <p id="result-summary" class="result-summary" aria-live="polite"></p>
-        </div>
-        <div class="stats" id="stats" aria-live="polite"></div>
-        <div id="results" class="results" aria-live="polite"></div>
-
-        <details class="method-note">
-          <summary><span>How this stays honest</span><span class="summary-action">unfold</span></summary>
-          <div class="method-content">
-            <p><strong>Observed data:</strong> public NYC event records, fetched on demand and ranked with a transparent heuristic based on the selected vertical, goal, place, and event language.</p>
-            <p><strong>Not measured here:</strong> attendance, host trust, pricing, conversion, or whether a host would welcome a brand. Those require consent and a real relationship.</p>
-            <a href="https://data.cityofnewyork.us/id/tvpp-9vvx" target="_blank" rel="noreferrer">Open the source dataset ↗</a>
+        <section class="results-section" id="results-section" aria-labelledby="results-title" hidden>
+          <div class="results-head">
+            <div><p class="eyebrow">YOUR SHORTLIST</p><h3 id="results-title" tabindex="-1">Three rooms to investigate</h3></div>
+            <p id="result-summary" class="result-summary" aria-live="polite"></p>
           </div>
-        </details>
+          <div class="stats" id="stats" aria-label="Search counts"></div>
+          <div id="results" class="results" aria-live="polite"></div>
+        </section>
+
+        <section id="brief-output" class="brief-output" aria-live="polite" hidden></section>
       </section>
+
+      <details class="disclosure research-note" id="research">
+        <summary><span>Research context</span><span class="summary-action">unfold</span></summary>
+        <div class="disclosure-content research-grid">
+          <p class="research-boundary">These sources support the product hypothesis. They do not influence event scores or establish campaign outcomes.</p>
+          <a href="https://www.who.int/groups/commission-on-social-connection/report" target="_blank" rel="noreferrer"><span class="source-type">Public health</span> WHO social connection report</a>
+          <a href="https://www.hhs.gov/surgeongeneral/reports-and-publications/connection/index.html" target="_blank" rel="noreferrer"><span class="source-type">Public health</span> U.S. Surgeon General advisory</a>
+          <a href="https://www.eventbrite.com/blog/press/newsroom/eventbrites-inaugural-social-study-report-reveals-the-reset-to-real/" target="_blank" rel="noreferrer"><span class="source-type">Industry study</span> Eventbrite Social Study</a>
+          <a href="https://www.iab.com/guidelines/creator-economy-as-is-measurement-landscape/" target="_blank" rel="noreferrer"><span class="source-type">Industry research</span> IAB measurement landscape</a>
+          <a href="https://www.creatoriq.com/blog/creator-marketing-trends-2025" target="_blank" rel="noreferrer"><span class="source-type">Industry survey</span> CreatorIQ trends</a>
+          <a href="https://dcdx.co/press/offline-release" target="_blank" rel="noreferrer"><span class="source-type">Company material</span> Offline launch</a>
+          <a href="https://followingup.substack.com/p/behind-the-screen-rothys-prioritizes" target="_blank" rel="noreferrer"><span class="source-type">Press example</span> Rothy's creator events</a>
+          <a href="https://data.cityofnewyork.us/City-Government/Permitted-Event-Information-Historical/tvpp-9vvx/about_data" target="_blank" rel="noreferrer"><span class="source-type">Government data</span> NYC Open Data</a>
+        </div>
+      </details>
     </main>
-    <footer>Built as a public-data prototype for thinking about better offline campaigns. <a href="https://github.com/rishvaiyer/offline-tool" target="_blank" rel="noreferrer">Source on GitHub ↗</a></footer>
+
+    <footer>Public-data prototype. No private Host inventory, pricing, attendance, or outcome claims.</footer>
     <script type="module" src="/app.js"></script>
   </body>
 </html>
