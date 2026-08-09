@@ -176,6 +176,20 @@ async function restoreSelectedEvent(browser) {
   await settle();
 }
 
+test("sample start generates the first brief without a second selection click", { concurrency: false }, async () => {
+  const browser = createBrowser({ fetchImpl: async () => response([rankedEvent]) });
+  browser.nodes["#brief-output"].hidden = true;
+  await loadApp(browser);
+
+  browser.nodes["#sample-start"].emit("click");
+  await settle();
+  await settle();
+
+  assert.equal(browser.nodes["#brief-output"].hidden, false);
+  assert.match(browser.nodes["#brief-content"].innerHTML, /Queens Night Market/);
+  assert.equal(new URL(browser.globals.window.location.href).searchParams.get("event"), "old-event");
+});
+
 test("filter edits invalidate a deferred shared-event restoration", { concurrency: false }, async () => {
   const firstResponse = deferred();
   const browser = createBrowser({

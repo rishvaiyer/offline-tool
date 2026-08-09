@@ -30,6 +30,14 @@ test("offers the one-minute start flow and accessible output regions", async () 
   }
 });
 
+test("links back to the scrapbook and labels the independent application", async () => {
+  const html = await source("public/index.html");
+
+  assert.match(html, /href="https:\/\/offline-scrapbook-production\.up\.railway\.app\/"[^>]*>back to scrapbook/);
+  assert.match(html, /Built by Rishva Iyer for an Offline engineering application/);
+  assert.match(html, /not affiliated with, endorsed by, or part of Offline or its products/);
+});
+
 test("keeps primary source and selection actions visible on three-card shortlist", async () => {
   const app = await source("public/app.js");
   const primaryTemplate = app.slice(

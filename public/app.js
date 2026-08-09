@@ -132,7 +132,7 @@ function openForm(mode) {
     setFilters(SAMPLE_FILTERS);
     showStep(3);
     workflowStatus.textContent = "Fictional sample loaded. Finding current public signals now.";
-    loadEvents();
+    loadEvents({ autoSelectFirst: true });
     return;
   }
 
@@ -265,7 +265,7 @@ function renderError(message) {
     </div>`;
 }
 
-async function loadEvents({ sharedEventId = null } = {}) {
+async function loadEvents({ sharedEventId = null, autoSelectFirst = false } = {}) {
   const requestId = requestTracker.begin();
   state.selectedEventId = sharedEventId;
   state.brief = null;
@@ -289,6 +289,10 @@ async function loadEvents({ sharedEventId = null } = {}) {
       renderEvents(state.events);
       renderMetadata(data);
       resultsSection.hidden = false;
+      if (autoSelectFirst && state.events[0]) {
+        selectEvent(state.events[0].event.id);
+        return;
+      }
       const sharedEvent = sharedEventId && state.events.find(({ event }) => String(event.id) === String(sharedEventId));
       if (sharedEvent) {
         renderBrief(sharedEvent);
