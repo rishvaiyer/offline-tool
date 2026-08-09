@@ -276,12 +276,13 @@ footer { padding: 18px 16px 56px; color: var(--muted); text-align: center; font:
   .research-boundary { grid-column: 1; }
 }
 
-@media (max-width: 390px) {
+@media (max-width: 430px) {
   .start-actions, .card-actions, .split-actions { flex-direction: column; }
   .start-actions .button, .card-actions .button, .split-actions .button { width: 100%; }
   .card-actions .button { flex: none; }
   .hero h1 { font-size: 40px; }
-  .sample-note { font-size: 9px; }
+  .sample-note, .workflow-status, .filter-field small, .event-meta, .event-details p, .secondary-signal p:last-child, .brief-details-content ul, .brief-methodology { font-size: 12px; line-height: 1.45; }
+  .summary-action, .step-label, .sample-badge, .text-button, .filter-field label, .result-summary, .stat span, .event-type, .event-details summary, .source-type, .more-results summary, .secondary-score, .secondary-actions a, .secondary-actions button, .brief-summary strong, .brief-details h4, .brief-details summary, .brief-source-url, .brief-action-status { font-size: 11px; }
   .form-step:not(.is-current) { display: none; }
   .step-actions { display: flex; margin-top: 12px; }
   .desktop-submit { display: none; }
