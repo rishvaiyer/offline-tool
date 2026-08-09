@@ -160,7 +160,16 @@
           <div id="results" class="results" aria-live="polite"></div>
         </section>
 
-        <section id="brief-output" class="brief-output" aria-live="polite" hidden></section>
+        <section id="brief-output" class="brief-output" aria-live="polite" hidden>
+          <div id="brief-content"></div>
+          <div class="brief-actions" aria-label="Brief actions">
+            <button class="button button-primary" id="copy-brief" type="button">Copy brief</button>
+            <button class="button button-quiet" id="print-brief" type="button">Print or save PDF</button>
+            <button class="button button-quiet" id="copy-share-link" type="button">Copy share link</button>
+            <button class="button button-quiet" id="reset-brief" type="button">Start over</button>
+          </div>
+          <p id="brief-action-status" class="brief-action-status" aria-live="polite"></p>
+        </section>
       </section>
 
       <details class="disclosure research-note" id="research">

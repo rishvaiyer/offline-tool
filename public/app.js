@@ -9,6 +9,7 @@ import {
   sourceUrl,
   statsRows
 } from "./planner.js";
+import { generateBrief } from "./brief.js";
 
 const FILTER_KEYS = ["vertical", "goal", "audience", "borough", "energy", "scale"];
 const DEFAULT_FILTERS = {
@@ -47,6 +48,8 @@ const stepNumber = document.querySelector("#step-number");
 const sampleBadge = document.querySelector("#sample-badge");
 const sourceMeta = document.querySelector("#source-meta");
 const briefOutput = document.querySelector("#brief-output");
+const briefContent = document.querySelector("#brief-content");
+const briefActionStatus = document.querySelector("#brief-action-status");
 const resultsTitle = document.querySelector("#results-title");
 const requestTracker = createRequestTracker();
 
@@ -76,9 +79,11 @@ function readFilters() {
 
 function setFilters(filters) {
   FILTER_KEYS.forEach((key) => {
-    form.elements[key].value = filters[key];
+    if (Array.from(form.elements[key].options).some((option) => option.value === filters[key])) {
+      form.elements[key].value = filters[key];
+    }
   });
-  state.filters = readFilters();
+  state.filters = { ...DEFAULT_FILTERS, ...filters };
 }
 
 function syncUrl() {
@@ -96,15 +101,17 @@ function clearPriorOutput() {
   stats.innerHTML = "";
   resultSummary.textContent = "";
   briefOutput.hidden = true;
-  briefOutput.innerHTML = "";
+  briefContent.innerHTML = "";
+  briefActionStatus.textContent = "";
   sourceMeta.textContent = metadataText(null);
 }
 
 function setOptions(select, values, allLabel) {
-  const selected = select.value;
+  const selected = state.filters[select.name] ?? select.value;
   select.replaceChildren(new Option(allLabel, "All"));
   values.forEach((value) => select.add(new Option(value, value)));
   select.value = values.includes(selected) ? selected : "All";
+  state.filters[select.name] = select.value;
 }
 
 function showStep(number, moveFocus = false) {
@@ -257,12 +264,13 @@ function renderError(message) {
     </div>`;
 }
 
-async function loadEvents() {
+async function loadEvents({ sharedEventId = null } = {}) {
   const requestId = requestTracker.begin();
-  state.filters = readFilters();
-  state.selectedEventId = null;
+  state.selectedEventId = sharedEventId;
   state.brief = null;
   briefOutput.hidden = true;
+  briefContent.innerHTML = "";
+  briefActionStatus.textContent = "";
   syncUrl();
   renderLoading();
   workflowStatus.textContent = "Loading current NYC public records and ranking transparent compatibility.";
@@ -280,6 +288,18 @@ async function loadEvents() {
       renderEvents(state.events);
       renderMetadata(data);
       resultsSection.hidden = false;
+      const sharedEvent = sharedEventId && state.events.find(({ event }) => String(event.id) === String(sharedEventId));
+      if (sharedEvent) {
+        renderBrief(sharedEvent);
+        return;
+      }
+      if (sharedEventId) {
+        state.selectedEventId = null;
+        syncUrl();
+        workflowStatus.textContent = "That public record is no longer in this window. Here are the current best matches.";
+        revealElement(resultsTitle, { focus: true, reducedMotion: reducedMotionRequested() });
+        return;
+      }
       workflowStatus.textContent = state.events.length
         ? "Shortlist ready. Compare the evidence, open a source, then choose one signal."
         : "No qualified signals were found. Your brief choices are preserved.";
@@ -297,13 +317,30 @@ async function loadEvents() {
 }
 
 function renderBrief(selected) {
-  state.brief = { eventId: selected.event.id };
+  const brief = generateBrief(state.filters, selected);
+  state.brief = brief;
   briefOutput.hidden = false;
-  briefOutput.innerHTML = `
+  briefActionStatus.textContent = "";
+  briefContent.innerHTML = `
     <p class="eyebrow">STEP 3 / SIGNAL SELECTED</p>
-    <h3 id="brief-title" tabindex="-1">Ready to build around ${escapeHtml(selected.event.name)}</h3>
-    <p>This public signal is attached to your six choices. The next brief step can propose a direction without adding attendance, pricing, or outcome claims.</p>
-    <a class="button button-quiet" href="${sourceUrl(selected.event.id)}" target="_blank" rel="noreferrer"><span class="source-type">Government data</span> Reopen source record</a>
+    <h3 id="brief-title" tabindex="-1">${escapeHtml(brief.title)}</h3>
+    <div class="brief-summary">
+      <div><strong>Intent</strong><p>${escapeHtml(brief.intent)}</p></div>
+      <div><strong>Gathering</strong><p>${escapeHtml(brief.gathering)}</p></div>
+      <div><strong>Fit</strong><p>${escapeHtml(brief.fit)}</p></div>
+      <div><strong>Activation</strong><p>${escapeHtml(brief.activation)}</p></div>
+      <div><strong>Value add</strong><p>${escapeHtml(brief.valueAdd)}</p></div>
+    </div>
+    <details class="brief-details">
+      <summary>Open details</summary>
+      <div class="brief-details-content">
+        <section><h4>Host questions</h4><ul>${brief.hostQuestions.map((question) => `<li>${escapeHtml(question)}</li>`).join("")}</ul></section>
+        <section><h4>Measurement</h4><ul>${brief.measurement.map((item) => `<li><strong>${escapeHtml(item.label)}</strong> ${escapeHtml(item.method)}</li>`).join("")}</ul></section>
+        <section><h4>Limitations</h4><ul>${brief.limitations.map((limitation) => `<li>${escapeHtml(limitation)}</li>`).join("")}</ul></section>
+        <section><h4>Source</h4><a href="${escapeHtml(brief.sourceUrl)}" target="_blank" rel="noreferrer">NYC Open Data public record</a></section>
+        <section><h4>Methodology</h4><p class="brief-methodology">Compatibility uses public event language, campaign goal, audience, geography, and timing. It does not score Host trust, willingness, pricing, capacity, or relationship fit.</p></section>
+      </div>
+    </details>
   `;
   revealElement(document.querySelector("#brief-title"), { focus: true, reducedMotion: reducedMotionRequested() });
   workflowStatus.textContent = `${selected.event.name} selected. The public source remains attached.`;
@@ -317,12 +354,103 @@ function selectEvent(eventId) {
   renderBrief(selected);
 }
 
+function briefText(brief) {
+  return [
+    brief.title,
+    "",
+    `Intent: ${brief.intent}`,
+    `Gathering: ${brief.gathering}`,
+    `Fit: ${brief.fit}`,
+    `Activation: ${brief.activation}`,
+    `Value add: ${brief.valueAdd}`,
+    "",
+    "Host questions:",
+    ...brief.hostQuestions.map((question) => `- ${question}`),
+    "",
+    "Measurement:",
+    ...brief.measurement.map((item) => `- ${item.label}: ${item.method}`),
+    "",
+    "Limitations:",
+    ...brief.limitations.map((limitation) => `- ${limitation}`),
+    "",
+    `Source: ${brief.sourceUrl}`,
+    "Methodology: Compatibility uses public event language, campaign goal, audience, geography, and timing. It does not score Host trust, willingness, pricing, capacity, or relationship fit."
+  ].join("\n");
+}
+
+function showManualCopy(text) {
+  briefContent.querySelector(".manual-copy")?.remove();
+  const textarea = document.createElement("textarea");
+  textarea.className = "manual-copy";
+  textarea.readOnly = true;
+  textarea.value = text;
+  textarea.setAttribute("aria-label", "Manual copy text");
+  briefContent.append(textarea);
+  textarea.focus({ preventScroll: true });
+  textarea.select();
+  briefActionStatus.textContent = "Copy did not finish automatically. Select the highlighted text and copy it manually.";
+}
+
+async function copyText(text, successMessage) {
+  try {
+    if (!navigator.clipboard?.writeText) throw new Error("Clipboard access is unavailable.");
+    await navigator.clipboard.writeText(text);
+    briefContent.querySelector(".manual-copy")?.remove();
+    briefActionStatus.textContent = successMessage;
+  } catch {
+    showManualCopy(text);
+  }
+}
+
+function resetPlanner() {
+  requestTracker.begin();
+  resetCustomState(state, DEFAULT_FILTERS);
+  state.mode = "start";
+  setFilters(DEFAULT_FILTERS);
+  form.hidden = true;
+  sampleBadge.hidden = true;
+  showStep(1);
+  clearPriorOutput();
+  const url = new URL(window.location.href);
+  url.search = "";
+  window.history.replaceState({}, "", url.toString());
+  workflowStatus.textContent = "Choose a sample or build your own brief to start.";
+  document.querySelector("#custom-start").focus({ preventScroll: true });
+}
+
+function restoreSharedState() {
+  const url = new URL(window.location.href);
+  const restored = { ...DEFAULT_FILTERS };
+  let hasFilters = false;
+
+  FILTER_KEYS.forEach((key) => {
+    const value = url.searchParams.get(key);
+    const options = Array.from(form.elements[key].options);
+    if (value && (key === "borough" || options.some((option) => option.value === value))) {
+      restored[key] = value;
+      hasFilters = true;
+    }
+  });
+
+  const sharedEventId = url.searchParams.get("event");
+  if (!hasFilters && !sharedEventId) return;
+
+  state.mode = "custom";
+  form.hidden = false;
+  setFilters(restored);
+  showStep(1);
+  workflowStatus.textContent = "Restoring shared brief choices and current public records.";
+  loadEvents({ sharedEventId });
+}
+
 document.querySelector("#sample-start").addEventListener("click", () => openForm("sample"));
 document.querySelector("#custom-start").addEventListener("click", () => openForm("custom"));
 document.querySelector("#edit-from-start").addEventListener("click", () => showStep(1, true));
 
 form.addEventListener("change", () => {
   state.filters = readFilters();
+  state.selectedEventId = null;
+  state.brief = null;
   if (state.mode === "sample") {
     state.mode = "custom";
     sampleBadge.hidden = true;
@@ -340,9 +468,26 @@ form.addEventListener("click", (event) => {
 form.addEventListener("submit", (event) => {
   event.preventDefault();
   state.mode = "custom";
+  state.filters = readFilters();
   sampleBadge.hidden = true;
   loadEvents();
 });
+
+document.querySelector("#copy-brief").addEventListener("click", () => {
+  if (state.brief) copyText(briefText(state.brief), "Brief copied.");
+});
+
+document.querySelector("#print-brief").addEventListener("click", () => {
+  if (state.brief) window.print();
+});
+
+document.querySelector("#copy-share-link").addEventListener("click", () => {
+  if (!state.brief) return;
+  syncUrl();
+  copyText(window.location.href, "Share link copied.");
+});
+
+document.querySelector("#reset-brief").addEventListener("click", resetPlanner);
 
 results.addEventListener("click", (event) => {
   const selectButton = event.target.closest("[data-select-event]");
@@ -360,3 +505,5 @@ document.querySelectorAll(".disclosure").forEach((disclosure) => {
     if (action) action.textContent = disclosure.open ? "fold back" : "unfold";
   });
 });
+
+restoreSharedState();

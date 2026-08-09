@@ -1,12 +1,20 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { execFile } from "node:child_process";
 import { readFile } from "node:fs/promises";
+import { fileURLToPath } from "node:url";
+import { promisify } from "node:util";
 
 const root = new URL("../", import.meta.url);
+const execFileAsync = promisify(execFile);
 
 async function source(path) {
   return readFile(new URL(path, root), "utf8");
 }
+
+test("keeps the browser entry module syntactically executable", async () => {
+  await execFileAsync(process.execPath, ["--check", fileURLToPath(new URL("public/app.js", root))]);
+});
 
 test("offers the one-minute start flow and accessible output regions", async () => {
   const html = await source("public/index.html");
@@ -43,8 +51,31 @@ test("defines mobile, touch-target, reduced-motion, and print contracts", async 
   assert.match(css, /\.method-note \.disclosure-content a\s*\{[^}]*min-height:\s*44px/);
   assert.match(css, /@media \(max-width:\s*390px\)/);
   assert.match(css, /@media \(max-width:\s*390px\)[\s\S]*\.card-actions \.button\s*\{[^}]*flex:\s*none/);
+  assert.match(css, /@media \(max-width:\s*390px\)[\s\S]*\.brief-actions \.button\s*\{[^}]*flex:\s*none/);
   assert.match(css, /@media \(prefers-reduced-motion:\s*reduce\)/);
   assert.match(css, /@media print/);
+});
+
+test("offers portable brief actions and safe shared-state restoration", async () => {
+  const [app, html, css] = await Promise.all([
+    source("public/app.js"),
+    source("public/index.html"),
+    source("public/styles.css")
+  ]);
+
+  for (const label of ["Copy brief", "Print or save PDF", "Copy share link", "Start over"]) {
+    assert.match(html, new RegExp(`>${label}<`));
+  }
+
+  assert.match(app, /import\s*\{[\s\S]*generateBrief[\s\S]*\}\s*from\s*["']\.\/brief\.js["']/);
+  assert.match(app, /navigator\.clipboard\.writeText/);
+  assert.match(app, /window\.print\(\)/);
+  assert.match(app, /window\.history\.replaceState/);
+  assert.match(app, /That public record is no longer in this window\. Here are the current best matches\./);
+  assert.match(app, /function resetPlanner\(\)/);
+  assert.doesNotMatch(app, /location\.reload/);
+  assert.match(app, /requestTracker\.isCurrent\(requestId\)/);
+  assert.match(css, /@media print[\s\S]*\.brief-details/);
 });
 
 test("keeps primary decision evidence readable at mobile sizes", async () => {
