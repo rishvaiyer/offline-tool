@@ -6,6 +6,8 @@
 
 [Open the live planner](https://offline-signal-planner-production.up.railway.app/) · [View the source on GitHub](https://github.com/rishvaiyer/offline-tool)
 
+![Offline Signal Planner interface](docs/screenshots/offline-signal-planner-home.png)
+
 This is an independent project by Rishva Iyer for an Offline application. It is not affiliated with Offline or any Offline product.
 
 ## The idea
